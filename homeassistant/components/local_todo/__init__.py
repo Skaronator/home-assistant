@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -13,11 +14,24 @@ from homeassistant.util import slugify
 from .const import CONF_STORAGE_KEY, CONF_TODO_LIST_NAME
 from .store import LocalTodoListStore
 
-PLATFORMS: list[Platform] = [Platform.TODO]
+if TYPE_CHECKING:
+    from .todo import LocalTodoListEntity
+
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.TODO]
 
 STORAGE_PATH = ".storage/local_todo.{key}.ics"
 
-type LocalTodoConfigEntry = ConfigEntry[LocalTodoListStore]
+
+class LocalTodoData:
+    """Local todo data stored in runtime_data."""
+
+    def __init__(self, store: LocalTodoListStore) -> None:
+        """Initialize LocalTodoData."""
+        self.store = store
+        self.todo_entity: LocalTodoListEntity | None = None
+
+
+type LocalTodoConfigEntry = ConfigEntry[LocalTodoData]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: LocalTodoConfigEntry) -> bool:
@@ -29,9 +43,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: LocalTodoConfigEntry) ->
     except OSError as err:
         raise ConfigEntryNotReady("Failed to load file {path}: {err}") from err
 
-    entry.runtime_data = store
+    entry.runtime_data = LocalTodoData(store)
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    # Setup todo platform first to create the todo entity
+    await hass.config_entries.async_forward_entry_setups(entry, [Platform.TODO])
+
+    # Then setup sensor platform which depends on the todo entity
+    await hass.config_entries.async_forward_entry_setups(entry, [Platform.SENSOR])
 
     return True
 

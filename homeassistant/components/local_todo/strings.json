@@ -13,5 +13,18 @@
     "abort": {
       "already_configured": "[%key:common::config_flow::abort::already_configured_service%]"
     }
+  },
+  "entity": {
+    "sensor": {
+      "total_items": {
+        "name": "Total items"
+      },
+      "completed_items": {
+        "name": "Completed items"
+      },
+      "open_items": {
+        "name": "Open items"
+      }
+    }
   }
 }

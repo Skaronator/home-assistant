@@ -98,5 +98,18 @@
     "update_field_not_supported": {
       "message": "Entity does not support setting field: {service_field}"
     }
+  },
+  "entity": {
+    "number": {
+      "total_items": {
+        "name": "Total items"
+      },
+      "completed_items": {
+        "name": "Completed items"
+      },
+      "open_items": {
+        "name": "Open items"
+      }
+    }
   }
 }

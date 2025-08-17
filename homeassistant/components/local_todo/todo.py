@@ -17,12 +17,13 @@ from homeassistant.components.todo import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.setup import SetupPhases, async_pause_setup
 from homeassistant.util import dt as dt_util
 
 from . import LocalTodoConfigEntry
-from .const import CONF_TODO_LIST_NAME
+from .const import CONF_TODO_LIST_NAME, DOMAIN
 from .store import LocalTodoListStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -69,7 +70,8 @@ async def async_setup_entry(
 ) -> None:
     """Set up the local_todo todo platform."""
 
-    store = config_entry.runtime_data
+    data = config_entry.runtime_data
+    store = data.store
     ics = await store.async_load()
 
     with async_pause_setup(hass, SetupPhases.WAIT_IMPORT_PACKAGES):
@@ -84,6 +86,7 @@ async def async_setup_entry(
 
     name = config_entry.data[CONF_TODO_LIST_NAME]
     entity = LocalTodoListEntity(store, calendar, name, unique_id=config_entry.entry_id)
+    data.todo_entity = entity  # Store reference for number platform
     async_add_entities([entity], True)
 
     if migrated:
@@ -134,6 +137,12 @@ class LocalTodoListEntity(TodoListEntity):
         self._calendar_lock = asyncio.Lock()
         self._attr_name = name.capitalize()
         self._attr_unique_id = unique_id
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, unique_id)},
+            name=name.capitalize(),
+            manufacturer="Home Assistant",
+            model="Local To-do List",
+        )
 
     def _new_todo_store(self) -> TodoStore:
         return TodoStore(self._calendar, tzinfo=dt_util.get_default_time_zone())
